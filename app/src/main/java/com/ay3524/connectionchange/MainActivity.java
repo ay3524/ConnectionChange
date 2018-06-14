@@ -2,6 +2,7 @@ package com.ay3524.connectionchange;
 
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -13,7 +14,7 @@ import com.ay3524.connectionchange.di.MainModule;
 
 import javax.inject.Inject;
 
-public class MainActivity extends AppCompatActivity implements ConnectionStatusCallback {
+public class MainActivity extends AppCompatActivity implements ConnectionStatusCallback, InternetCheckCallback {
 
     public static final String TAG = MainActivity.class.getSimpleName();
     private TextView textView;
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity implements ConnectionStatusC
 
     @Inject
     IntentFilter intentFilter;
+    private InternetCheckTask internetCheckTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +35,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionStatusC
         diSetup();
 
         registerNetworkBroadcastForNougat();
+
+        internetCheckTask = new InternetCheckTask(this);
     }
 
     private void diSetup() {
@@ -68,9 +72,22 @@ public class MainActivity extends AppCompatActivity implements ConnectionStatusC
         if (isOnline) {
             textView.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_orange_light));
             textView.setText("Connected to Network");
+            if (internetCheckTask.getStatus() == AsyncTask.Status.RUNNING || internetCheckTask.getStatus() == AsyncTask.Status.PENDING) {
+                internetCheckTask.cancel(true);
+            }
+            InternetCheckTask internetCheckTask = new InternetCheckTask(this);
+            internetCheckTask.execute();
         } else {
             textView.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_red_light));
             textView.setText("Disconnected from Network");
+        }
+    }
+
+    @Override
+    public void isInternetAvailable(boolean connectivityStatus) {
+        if(connectivityStatus){
+            textView.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), android.R.color.holo_green_dark));
+            textView.setText("Connected to Internet");
         }
     }
 }
